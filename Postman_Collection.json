@@ -1,0 +1,228 @@
+{
+  "info": {
+    "name": "Cadence API tests",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base",
+      "value": "http://localhost:5000/api"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "roomId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "1 Register (role forced to member)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base}}/auth/register",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Test Student\",\n  \"email\": \"student@example.com\",\n  \"password\": \"Student#12345\",\n  \"role\": \"admin\"\n}"
+        }
+      }
+    },
+    {
+      "name": "2 Login admin (use seeded admin)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base}}/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"admin@cadence.dev\",\n  \"password\": \"<SEED_ADMIN_PASSWORD>\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const j=pm.response.json();pm.collectionVariables.set('token',j.token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3 Profile without token -> 401",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base}}/auth/me"
+      }
+    },
+    {
+      "name": "4 Availability",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{base}}/rooms/availability?date=2030-01-15&startTime=10:00&endTime=11:00&capacity=2"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const r=pm.response.json().rooms;if(r&&r[0])pm.collectionVariables.set('roomId',r[0]._id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "5 Book 10:00-11:00 -> 201",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{base}}/bookings",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"room\": \"{{roomId}}\",\n  \"title\": \"Demo call\",\n  \"date\": \"2030-01-15\",\n  \"startTime\": \"10:00\",\n  \"endTime\": \"11:00\",\n  \"attendees\": 2\n}"
+        }
+      }
+    },
+    {
+      "name": "6 Overlap 10:30-11:30 -> 409",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{base}}/bookings",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"room\": \"{{roomId}}\",\n  \"title\": \"Demo call\",\n  \"date\": \"2030-01-15\",\n  \"startTime\": \"10:30\",\n  \"endTime\": \"11:30\",\n  \"attendees\": 2\n}"
+        }
+      }
+    },
+    {
+      "name": "7 Back-to-back 11:00-12:00 -> 201",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{base}}/bookings",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"room\": \"{{roomId}}\",\n  \"title\": \"Demo call\",\n  \"date\": \"2030-01-15\",\n  \"startTime\": \"11:00\",\n  \"endTime\": \"12:00\",\n  \"attendees\": 2\n}"
+        }
+      }
+    },
+    {
+      "name": "8 End before start -> 400",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{base}}/bookings",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"room\": \"{{roomId}}\",\n  \"title\": \"Demo call\",\n  \"date\": \"2030-01-15\",\n  \"startTime\": \"12:00\",\n  \"endTime\": \"11:00\",\n  \"attendees\": 2\n}"
+        }
+      }
+    },
+    {
+      "name": "9 Capacity 30 -> only Town Hall",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{base}}/rooms/availability?date=2030-01-16&startTime=10:00&endTime=11:00&capacity=30"
+      }
+    },
+    {
+      "name": "10 Register member then login, POST /rooms -> 403",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{base}}/rooms",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"X\",\n  \"capacity\": 5\n}"
+        }
+      }
+    }
+  ]
+}
