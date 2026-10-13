@@ -1,3 +1,8 @@
+## Live demo
+- App: https://cadence-crm-swart.vercel.app
+- API: https://cadence-api-3c6a.onrender.com
+- Demo admin: admin@cadence.dev (password shared separately)
+
 # Cadence: CRM for startups that won't let deals go cold
 
 **The problem it solves:** deals die from silence, not rejection. A normal CRM records the past; nobody notices the deal nobody touched for a week.
